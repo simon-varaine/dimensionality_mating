@@ -37,17 +37,18 @@ dir_out     <- file.path(dir_root, "output")         # generated outputs
 for (d in c(dir_derived, dir_out))
   if (!dir.exists(d)) dir.create(d, recursive = TRUE)
 
-## --- raw input files (cleaned names; see README data manifest) ---------------
+## --- raw input files (original file names, as downloaded from each source) ---
 ## Only needed to REBUILD the analysis dataset (build_dataset.R). Not required
-## to reproduce the analyses from the shared dataset (run_all.R).
-path_lislevand <- file.path(dir_data, "lislevand_2007_avian_ssd.txt")
-path_avonet    <- file.path(dir_data, "avonet3_birdtree.xlsx")
+## to reproduce the analyses from the shared dataset (run_all.R). Drop each file
+## into data/ under the name it ships with (see README data manifest).
+path_lislevand <- file.path(dir_data, "avian_ssd_jan07.txt")                        # Lislevand et al. 2007
+path_avonet    <- file.path(dir_data, "AVONET3_BirdTree.xlsx")                      # Tobias et al. 2022
 avonet_sheet   <- "AVONET3_BirdTree"
-path_blio      <- file.path(dir_data, "birdtree_taxonomy.csv")   # BLIOCPhyloMasterTax
-path_dale      <- file.path(dir_data, "dale_2015_plumage_scores.csv")
-path_marcondes <- file.path(dir_data, "marcondes_douvas_2024_mating_systems.xlsx")
+path_blio      <- file.path(dir_data, "BLIOCPhyloMasterTax.csv")                    # BirdTree taxonomy
+path_dale      <- file.path(dir_data, "plumage_scores.csv")                         # Dale et al. 2015
+path_marcondes <- file.path(dir_data, "Mating_systems_master_datasheet_10nov2023.xlsx")  # Marcondes & Douvas 2024
 marcondes_sheet<- "Species_data"
-path_spur      <- file.path(dir_data, "menezes_palaoro_2022_spurs.csv")
+path_spur      <- file.path(dir_data, "species_spur_data.csv")                      # Menezes & Palaoro 2022
 
 ## --- shared analysis-ready dataset (committed to GitHub) ---------------------
 ## Written by build_dataset.R, read by run_all.R. One row per species, keyed by

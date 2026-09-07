@@ -89,18 +89,23 @@ throughout: `avo_base` (all species) and `merged` (the Lislevand subset,
 
 ## Data manifest (raw sources, to rebuild the dataset)
 
-Place each file directly in `data/` under the cleaned name below. These files
-are **not** redistributed here; download them from the original publications.
+Download each source and drop the file into `data/` **under the name it ships
+with** — no renaming needed. These files are not redistributed here. Where a
+source is delivered as an archive (e.g. AVONET's `ELEData/`, a Dryad `.zip`),
+extract the single file named below into `data/`.
 
-| Cleaned name in `data/` | Original file | Reference |
+| File name in `data/` | Source / notes | Reference |
 |---|---|---|
-| `lislevand_2007_avian_ssd.txt` | `avian_ssd_jan07.txt` (Ecological Archives E088-096) | Lislevand et al. 2007, *Ecology* |
-| `avonet3_birdtree.xlsx` (sheet `AVONET3_BirdTree`) | AVONET supplementary dataset | Tobias et al. 2022, *Ecol. Lett.* |
-| `birdtree_taxonomy.csv` | `BLIOCPhyloMasterTax.csv` | Jetz et al. 2012, *Nature* |
-| `dale_2015_plumage_scores.csv` | plumage scores | Dale et al. 2015, *Nature* |
-| `marcondes_douvas_2024_mating_systems.xlsx` (sheet `Species_data`) | mating-systems datasheet | Marcondes & Douvas 2024, *Evolution* |
-| `menezes_palaoro_2022_spurs.csv` | `species_spur_data.csv` (Dryad) | Menezes & Palaoro 2022, *Ecol. Lett.* |
-| `AllBirdsHackett1.tre` | 1000 Hackett all-species trees | Jetz et al. 2012 / birdtree.org |
+| `avian_ssd_jan07.txt` | Ecological Archives E088-096 | Lislevand et al. 2007, *Ecology* |
+| `AVONET3_BirdTree.xlsx` (sheet `AVONET3_BirdTree`) | from the AVONET supplement (`ELEData/TraitData/`) | Tobias et al. 2022, *Ecol. Lett.* |
+| `BLIOCPhyloMasterTax.csv` | BirdTree taxonomy ↔ tip labels | Jetz et al. 2012, *Nature* |
+| `plumage_scores.csv` | male/female plumage scores | Dale et al. 2015, *Nature* |
+| `Mating_systems_master_datasheet_10nov2023.xlsx` (sheet `Species_data`) | remove any ` (n)` download suffix so the name matches | Marcondes & Douvas 2024, *Evolution* |
+| `species_spur_data.csv` | Dryad | Menezes & Palaoro 2022, *Ecol. Lett.* |
+| `AllBirdsHackett1.tre` | 1000 Hackett "All species" trees (large; download from birdtree.org) | Jetz et al. 2012 |
+
+If a future release of any source changes its file name, either keep the old
+name or update the corresponding `path_*` line in `R/00_setup.R`.
 
 ## Data sources & licences
 
