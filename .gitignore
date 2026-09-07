@@ -1,0 +1,17 @@
+# Data: never push to GitHub
+data/
+
+# Generated outputs: never push to GitHub
+output/
+
+# R / RStudio local files
+.Rhistory
+.RData
+.Ruserdata
+.Rproj.user/
+
+# Environment variables / credentials
+.Renviron
+
+# macOS
+.DS_Store
