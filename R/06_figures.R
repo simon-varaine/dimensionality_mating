@@ -117,23 +117,28 @@ rownames(dat_z) <- dat_z$tip_label
 dat_z_avo <- avo_base %>%
   filter(!is.na(dim_bin), !is.na(dichromatism), !is.na(tip_label)) %>%
   distinct(tip_label, .keep_all = TRUE) %>%
-  mutate(dichromatism = as.numeric(scale(dichromatism))) %>%
+  mutate(across(c(dichromatism, male_plumage, female_plumage),
+                ~ as.numeric(scale(.)))) %>%
   as.data.frame()
 rownames(dat_z_avo) <- dat_z_avo$tip_label
 
 figB_df <- bind_rows(
-  summ_z("ssd_mass",     "Mass dimorphism",      dat_z),
-  summ_z("ssd_tarsus",   "Tarsus dimorphism",    dat_z),
-  summ_z("ssd_wing",     "Wing dimorphism",      dat_z),
-  summ_z("ssd_bill",     "Bill dimorphism",      dat_z),
-  summ_z("ssd_tail",     "Tail dimorphism",      dat_z),
-  summ_z("display_num",  "Display agility",       dat_z),
-  summ_z("dichromatism", "Plumage dichromatism", dat_z_avo)
+  summ_z("ssd_mass",       "Mass dimorphism",           dat_z),
+  summ_z("ssd_tarsus",     "Tarsus dimorphism",         dat_z),
+  summ_z("ssd_wing",       "Wing dimorphism",           dat_z),
+  summ_z("ssd_bill",       "Bill dimorphism",           dat_z),
+  summ_z("ssd_tail",       "Tail dimorphism",           dat_z),
+  summ_z("display_num",    "Display agility",            dat_z),
+  summ_z("dichromatism",   "Plumage dichromatism (M-F)", dat_z_avo),
+  summ_z("male_plumage",   "Male plumage elaboration",   dat_z_avo),
+  summ_z("female_plumage", "Female plumage elaboration", dat_z_avo)
 ) %>%
   mutate(label = factor(label, levels = rev(c(
            "Mass dimorphism", "Tarsus dimorphism", "Tail dimorphism",
            "Wing dimorphism", "Bill dimorphism",
-           "Display agility", "Plumage dichromatism"))),
+           "Display agility",
+           "Plumage dichromatism (M-F)",
+           "Male plumage elaboration", "Female plumage elaboration"))),
          couleur = .fig_colour(median, lo, hi))
 figB <- make_forest(
   figB_df, "B. Morphology and behaviour (PGLS, z-scored responses)",
@@ -251,23 +256,28 @@ dat_z_avo_pass <- avo_base %>%
   filter(order == "Passeriformes", !is.na(dim_bin), !is.na(dichromatism),
          !is.na(tip_label)) %>%
   distinct(tip_label, .keep_all = TRUE) %>%
-  mutate(dichromatism = as.numeric(scale(dichromatism))) %>%
+  mutate(across(c(dichromatism, male_plumage, female_plumage),
+                ~ as.numeric(scale(.)))) %>%
   as.data.frame()
 rownames(dat_z_avo_pass) <- dat_z_avo_pass$tip_label
 
 figB_pass_df <- bind_rows(
-  summ_z("ssd_mass",     "Mass dimorphism",      dat_z_pass),
-  summ_z("ssd_tarsus",   "Tarsus dimorphism",    dat_z_pass),
-  summ_z("ssd_wing",     "Wing dimorphism",      dat_z_pass),
-  summ_z("ssd_bill",     "Bill dimorphism",      dat_z_pass),
-  summ_z("ssd_tail",     "Tail dimorphism",      dat_z_pass),
-  summ_z("display_num",  "Display agility",       dat_z_pass),
-  summ_z("dichromatism", "Plumage dichromatism", dat_z_avo_pass)
+  summ_z("ssd_mass",       "Mass dimorphism",           dat_z_pass),
+  summ_z("ssd_tarsus",     "Tarsus dimorphism",         dat_z_pass),
+  summ_z("ssd_wing",       "Wing dimorphism",           dat_z_pass),
+  summ_z("ssd_bill",       "Bill dimorphism",           dat_z_pass),
+  summ_z("ssd_tail",       "Tail dimorphism",           dat_z_pass),
+  summ_z("display_num",    "Display agility",            dat_z_pass),
+  summ_z("dichromatism",   "Plumage dichromatism (M-F)", dat_z_avo_pass),
+  summ_z("male_plumage",   "Male plumage elaboration",   dat_z_avo_pass),
+  summ_z("female_plumage", "Female plumage elaboration", dat_z_avo_pass)
 ) %>%
   mutate(label = factor(label, levels = rev(c(
            "Mass dimorphism", "Tarsus dimorphism", "Tail dimorphism",
            "Wing dimorphism", "Bill dimorphism",
-           "Display agility", "Plumage dichromatism"))),
+           "Display agility",
+           "Plumage dichromatism (M-F)",
+           "Male plumage elaboration", "Female plumage elaboration"))),
          couleur = .fig_colour(median, lo, hi))
 figB_pass <- make_forest(
   figB_pass_df, "B. Morphology and behaviour (Passeriformes only, z-scored)",

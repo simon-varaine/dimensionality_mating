@@ -19,7 +19,9 @@ by_life_avo <- avo_base %>%
   summarise(N            = n(),
             pct_RDP      = round(100 * mean(marc_poly == 1, na.rm = TRUE), 1),
             pct_lek_marc = round(100 * mean(marc_lek  == 1, na.rm = TRUE), 1),
-            dichrom_med  = round(median(dichromatism, na.rm = TRUE), 2),
+            dichrom_med  = round(median(dichromatism,   na.rm = TRUE), 2),
+            male_med     = round(median(male_plumage,   na.rm = TRUE), 2),
+            female_med   = round(median(female_plumage, na.rm = TRUE), 2),
             pct_spur     = round(100 * mean(spur_hi == 1, na.rm = TRUE), 1),
             .groups = "drop")
 
@@ -36,13 +38,48 @@ table1 <- by_life_avo %>%
   left_join(by_life_lis, by = "primary_lifestyle") %>%
   mutate(primary_lifestyle = factor(primary_lifestyle, levels = lifestyle_order)) %>%
   arrange(primary_lifestyle) %>%
-  ## column order as in the manuscript Table 1
+  ## column order as in the manuscript Table 1 (+ male/female decomposition)
   select(primary_lifestyle, N, pct_poly, pct_lek_lis, pct_RDP, pct_lek_marc,
-         ssd_mass_med, display_med, dichrom_med, pct_spur)
+         ssd_mass_med, display_med, dichrom_med, male_med, female_med, pct_spur)
 
 cat("\n=== TABLE 1: raw values by lifestyle ===\n")
 print(as.data.frame(table1), row.names = FALSE)
 write_csv(table1, file.path(dir_out, "table1_by_lifestyle.csv"))
+
+## --- per-cell denominators + column totals (reviewer request) ---------------
+## Each percentage/median rests on a source-specific sample; report the N behind
+## each block per lifestyle, plus column totals. Blocks share a denominator when
+## their columns share the same NA pattern (e.g. % poly and % lek from Lislevand
+## mating_system; dichromatism/male/female from Dale).
+den_by_life <- function(data, var, colname) {
+  data %>% filter(!is.na(primary_lifestyle)) %>% distinct(key, .keep_all = TRUE) %>%
+    group_by(primary_lifestyle) %>%
+    summarise(!!colname := sum(!is.na(.data[[var]])), .groups = "drop")
+}
+table1_n <- Reduce(function(a, b) left_join(a, b, by = "primary_lifestyle"), list(
+  avo_base %>% filter(!is.na(primary_lifestyle)) %>% distinct(key, .keep_all = TRUE) %>%
+    count(primary_lifestyle, name = "N_total"),
+  den_by_life(merged,   "harem",        "n_matingsys_lis"),  # % poly, % lek
+  den_by_life(merged,   "ssd_mass",     "n_ssd_mass"),
+  den_by_life(merged,   "display_num",  "n_display"),
+  den_by_life(avo_base, "marc_poly",    "n_marcondes"),      # % RDP, % lek (Marcondes)
+  den_by_life(avo_base, "dichromatism", "n_plumage"),        # dichrom, male, female
+  den_by_life(avo_base, "spur_hi",      "n_spur")
+)) %>%
+  mutate(primary_lifestyle = factor(primary_lifestyle, levels = lifestyle_order)) %>%
+  arrange(primary_lifestyle) %>%
+  mutate(primary_lifestyle = as.character(primary_lifestyle))
+
+## column totals row
+table1_n <- bind_rows(
+  table1_n,
+  table1_n %>% summarise(primary_lifestyle = "TOTAL",
+                         across(where(is.numeric), ~ sum(., na.rm = TRUE)))
+)
+
+cat("\n=== TABLE 1 (denominators): N behind each cell, with column totals ===\n")
+print(as.data.frame(table1_n), row.names = FALSE)
+write_csv(table1_n, file.path(dir_out, "table1_denominators.csv"))
 
 ################################################################################
 ## TABLE A1: sample sizes per model (N, N_2D, N_3D) ---------------------------

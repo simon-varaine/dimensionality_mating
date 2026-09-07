@@ -134,6 +134,33 @@ res_dichrom_interact <- run_pgls(
   label = "Dichromatism x resource (interaction)")
 
 ################################################################################
+## 4b. PLUMAGE DECOMPOSITION (male / female / difference)   [revision, §2.5] ---
+## Dichromatism = male - female nets out drivers shared by both sexes, so it is
+## insensitive to MUTUAL ornamentation (both sexes elaborate). To see whether the
+## weak dichromatism signal hides mutual ornamentation, fit male and female
+## elaboration separately (big-N, avo_base), alongside the difference.
+##   Internal check: beta(male) - beta(female) should approximate beta(dichrom).
+## CAVEAT: absolute male/female levels REINTRODUCE shared ecological drivers
+## (predation, light environment; cf. Dunn et al. 2015) that the difference
+## removes. Treat these as exploratory; lean on the difference and, later, on the
+## resource interaction for causal inference.
+################################################################################
+cat("\n########## 4b. PLUMAGE DECOMPOSITION (male / female) ##########\n")
+
+res_male_plumage   <- run_pgls(
+  "male_plumage", type = "gaussian", direction = "positive",
+  dat = .prep_dat(avo_base, "male_plumage"),
+  label = "Male plumage elaboration (big-N)")
+res_female_plumage <- run_pgls(
+  "female_plumage", type = "gaussian", direction = "positive",
+  dat = .prep_dat(avo_base, "female_plumage"),
+  label = "Female plumage elaboration (big-N)")
+
+cat(sprintf("\nDecomposition check: beta(male) - beta(female) = %+.4f  vs  beta(dichrom) = %+.4f\n",
+            median(res_male_plumage$coefs) - median(res_female_plumage$coefs),
+            median(res_dichrom_bigN$coefs)))
+
+################################################################################
 ## 5. BONY SPURS --------------------------------------------------------------
 ## Spurs are almost absent from 3D species -> (quasi-)complete separation, so a
 ## phylogenetic logistic regression is not identifiable. Report the descriptive
