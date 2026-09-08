@@ -31,6 +31,7 @@ analysis_data <- read_csv(
     spur_hi           = col_integer(),
     marc_poly         = col_integer(),
     marc_lek          = col_integer(),
+    marc_system       = col_character(),
     lislevand         = col_logical(),
     english_name      = col_character(),
     mating_system     = col_integer(),

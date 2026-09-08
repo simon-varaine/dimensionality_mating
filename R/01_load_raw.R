@@ -127,7 +127,10 @@ marc_sp <- read_excel(path_marcondes, sheet = marcondes_sheet) %>%
                           TRUE ~ NA_integer_),
     marc_lek  = case_when(ms_marc_raw == "L"          ~ 1L,
                           ms_marc_raw %in% c("M", "P") ~ 0L,
-                          TRUE ~ NA_integer_)
+                          TRUE ~ NA_integer_),
+    ## raw 3-state category kept for the monogamy-referenced contrasts (§2.3)
+    marc_system = case_when(ms_marc_raw %in% c("M", "P", "L") ~ ms_marc_raw,
+                            TRUE ~ NA_character_)
   ) %>%
   distinct(key, .keep_all = TRUE)
 cat("Marcondes:", nrow(marc_sp), "species | P =",

@@ -62,6 +62,48 @@ res_marc_lek  <- run_pgls("marc_lek",  type = "binary", direction = "positive",
                           dat = .prep_dat(avo_base, "marc_lek"),
                           label = "Lekking (Marcondes)")
 
+## --- 1b. Monogamy-referenced contrasts (revision, §2.3) ----------------------
+## The one-vs-rest contrasts above conflate the reference category (e.g. a
+## negative marc_poly could mean less RDP, more monogamy, OR more lekking). Refit
+## each polygamous system against MONOGAMY as a clean reference, dropping the
+## third category, so RDP-vs-monogamy and lek-vs-monogamy are separable -- the
+## dissociation that carries the paper.
+cat("\n--- 1b. Marcondes contrasts vs monogamy (clean reference) ---\n")
+
+## RDP vs monogamy (exclude leks)
+dat_rdp_mono <- avo_base %>%
+  filter(marc_system %in% c("M", "P"), !is.na(dim_bin), !is.na(tip_label)) %>%
+  mutate(rdp = as.integer(marc_system == "P")) %>%
+  distinct(tip_label, .keep_all = TRUE) %>% as.data.frame()
+rownames(dat_rdp_mono) <- dat_rdp_mono$tip_label
+res_marc_rdp_vs_mono <- run_pgls("rdp", type = "binary", direction = "negative",
+                                 dat = dat_rdp_mono,
+                                 label = "RDP vs monogamy (Marcondes)")
+
+## lek vs monogamy (exclude RDP)
+dat_lek_mono <- avo_base %>%
+  filter(marc_system %in% c("M", "L"), !is.na(dim_bin), !is.na(tip_label)) %>%
+  mutate(lek_m = as.integer(marc_system == "L")) %>%
+  distinct(tip_label, .keep_all = TRUE) %>% as.data.frame()
+rownames(dat_lek_mono) <- dat_lek_mono$tip_label
+res_marc_lek_vs_mono <- run_pgls("lek_m", type = "binary", direction = "positive",
+                                 dat = dat_lek_mono,
+                                 label = "Lek vs monogamy (Marcondes)")
+
+## lek vs RDP directly (drop monogamy): the two polygamous systems head-to-head.
+## Most direct statement of the dissociation, but NOT independent of the two
+## contrasts above (log-odds L-vs-P = L-vs-M minus P-vs-M). Expect a large
+## positive median but wide across-tree range: the lek signal is concentrated in
+## hummingbirds, which the phylogenetic model correctly discounts.
+dat_lek_rdp <- avo_base %>%
+  filter(marc_system %in% c("P", "L"), !is.na(dim_bin), !is.na(tip_label)) %>%
+  mutate(lek_vs_rdp = as.integer(marc_system == "L")) %>%
+  distinct(tip_label, .keep_all = TRUE) %>% as.data.frame()
+rownames(dat_lek_rdp) <- dat_lek_rdp$tip_label
+res_marc_lek_vs_rdp <- run_pgls("lek_vs_rdp", type = "binary", direction = "positive",
+                                dat = dat_lek_rdp,
+                                label = "Lek vs RDP (Marcondes)")
+
 ################################################################################
 ## 2. SIZE DIMORPHISM (SSD) + RENSCH CONTROL ----------------------------------
 ## All size traits predicted DOWN in 3D (contest/armament axis). Then the

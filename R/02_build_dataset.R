@@ -26,7 +26,7 @@ analysis <- avo %>%
   left_join(dale %>% select(tip_label, male_plumage, female_plumage, dichromatism),
             by = "tip_label") %>%
   left_join(spur_sp %>% select(key, spur_hi), by = "key") %>%
-  left_join(marc_sp %>% select(key, marc_poly, marc_lek), by = "key")
+  left_join(marc_sp %>% select(key, marc_poly, marc_lek, marc_system), by = "key")
 
 ## --- 2b. left-join the Lislevand block (subset of species) -------------------
 lis_block <- lis %>%
@@ -91,7 +91,7 @@ analysis <- analysis %>%
     primary_lifestyle, dim_proxy, dim_bin,
     ## whole-clade variables (avo_base analyses)
     hwi, dichromatism, male_plumage, female_plumage,
-    spur_hi, marc_poly, marc_lek,
+    spur_hi, marc_poly, marc_lek, marc_system,
     ## Lislevand block (merged analyses)
     lislevand, english_name, mating_system, display_num, resource,
     harem, lek, polyandry,
