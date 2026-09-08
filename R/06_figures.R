@@ -122,6 +122,15 @@ dat_z_avo <- avo_base %>%
   as.data.frame()
 rownames(dat_z_avo) <- dat_z_avo$tip_label
 
+## intensity (Barber) z-scored, for the panel-B row (an OUTCOME, shown for
+## comparison alongside the form traits -- provisional placement, revisit w/ Jan)
+dat_z_barber <- avo_base %>%
+  filter(!is.na(dim_bin), !is.na(barber_ss), !is.na(tip_label)) %>%
+  distinct(tip_label, .keep_all = TRUE) %>%
+  mutate(barber_ss = as.numeric(scale(barber_ss))) %>%
+  as.data.frame()
+rownames(dat_z_barber) <- dat_z_barber$tip_label
+
 figB_df <- bind_rows(
   summ_z("ssd_mass",       "Mass dimorphism",           dat_z),
   summ_z("ssd_tarsus",     "Tarsus dimorphism",         dat_z),
@@ -131,14 +140,16 @@ figB_df <- bind_rows(
   summ_z("display_num",    "Display agility",            dat_z),
   summ_z("dichromatism",   "Plumage dichromatism (M-F)", dat_z_avo),
   summ_z("male_plumage",   "Male plumage elaboration",   dat_z_avo),
-  summ_z("female_plumage", "Female plumage elaboration", dat_z_avo)
+  summ_z("female_plumage", "Female plumage elaboration", dat_z_avo),
+  summ_z("barber_ss",      "Sexual-selection intensity (Barber)", dat_z_barber)
 ) %>%
   mutate(label = factor(label, levels = rev(c(
            "Mass dimorphism", "Tarsus dimorphism", "Tail dimorphism",
            "Wing dimorphism", "Bill dimorphism",
            "Display agility",
            "Plumage dichromatism (M-F)",
-           "Male plumage elaboration", "Female plumage elaboration"))),
+           "Male plumage elaboration", "Female plumage elaboration",
+           "Sexual-selection intensity (Barber)"))),
          couleur = .fig_colour(median, lo, hi))
 figB <- make_forest(
   figB_df, "B. Morphology and behaviour (PGLS, z-scored responses)",
@@ -261,6 +272,14 @@ dat_z_avo_pass <- avo_base %>%
   as.data.frame()
 rownames(dat_z_avo_pass) <- dat_z_avo_pass$tip_label
 
+dat_z_barber_pass <- avo_base %>%
+  filter(order == "Passeriformes", !is.na(dim_bin), !is.na(barber_ss),
+         !is.na(tip_label)) %>%
+  distinct(tip_label, .keep_all = TRUE) %>%
+  mutate(barber_ss = as.numeric(scale(barber_ss))) %>%
+  as.data.frame()
+rownames(dat_z_barber_pass) <- dat_z_barber_pass$tip_label
+
 figB_pass_df <- bind_rows(
   summ_z("ssd_mass",       "Mass dimorphism",           dat_z_pass),
   summ_z("ssd_tarsus",     "Tarsus dimorphism",         dat_z_pass),
@@ -270,14 +289,16 @@ figB_pass_df <- bind_rows(
   summ_z("display_num",    "Display agility",            dat_z_pass),
   summ_z("dichromatism",   "Plumage dichromatism (M-F)", dat_z_avo_pass),
   summ_z("male_plumage",   "Male plumage elaboration",   dat_z_avo_pass),
-  summ_z("female_plumage", "Female plumage elaboration", dat_z_avo_pass)
+  summ_z("female_plumage", "Female plumage elaboration", dat_z_avo_pass),
+  summ_z("barber_ss",      "Sexual-selection intensity (Barber)", dat_z_barber_pass)
 ) %>%
   mutate(label = factor(label, levels = rev(c(
            "Mass dimorphism", "Tarsus dimorphism", "Tail dimorphism",
            "Wing dimorphism", "Bill dimorphism",
            "Display agility",
            "Plumage dichromatism (M-F)",
-           "Male plumage elaboration", "Female plumage elaboration"))),
+           "Male plumage elaboration", "Female plumage elaboration",
+           "Sexual-selection intensity (Barber)"))),
          couleur = .fig_colour(median, lo, hi))
 figB_pass <- make_forest(
   figB_pass_df, "B. Morphology and behaviour (Passeriformes only, z-scored)",

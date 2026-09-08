@@ -349,4 +349,52 @@ if (min_pos_cell(tb_rdp_pass) < SEP_THRESHOLD) {
                               label = "RDP vs monogamy [Passeriformes]")
 }
 
+################################################################################
+## 8. CARE MODERATORS: interaction dim_bin x care on the choice traits  [rev.] -
+## Prediction: the 3D -> male-ornament effect concentrates where care is LOW /
+## female-borne (female choice) and attenuates where care is high / shared
+## (mutual choice). Two moderators, from near-circular to distal:
+##   care_female : F vs P            (PROXIMAL, near-circular; upper bound)     +
+##   dev_pc1     : hatchling PCA     (DISTAL; HIGH = precocial = low care need) +
+## (last column = predicted sign of the dim_bin3D:moderator interaction.)
+## (Care duration from BirdBase set aside for now; dev_pc1 largely captures it.)
+## Responses: male_plumage, dichromatism (avo_base); display_num (merged).
+################################################################################
+cat("\n########## 8. CARE MODERATORS (interactions) ##########\n")
+
+## build the interaction dataset for one response x one moderator.
+## The moderator is always renamed `mv`, so the interaction term is dim_bin3D:mv.
+.interaction_care <- function(response, base, mod) {
+  d <- base %>% filter(!is.na(dim_bin), !is.na(.data[[response]]), !is.na(tip_label))
+  if (mod == "care_female") {
+    d   <- d %>% filter(care_mode %in% c("F", "P")) %>%
+      mutate(mv = as.integer(care_mode == "F"))
+    dir <- "positive"
+  } else if (mod == "dev_pc1") {
+    d   <- d %>% filter(!is.na(dev_pc1)) %>% mutate(mv = as.numeric(scale(dev_pc1)))
+    dir <- "positive"          # high dev_pc1 = precocial = low care
+  }
+  d <- d %>% distinct(tip_label, .keep_all = TRUE) %>% as.data.frame()
+  rownames(d) <- d$tip_label
+  list(dat = d, dir = dir)
+}
+
+care_grid <- expand.grid(
+  response = c("male_plumage", "dichromatism", "display_num"),
+  mod      = c("care_female", "dev_pc1"),
+  stringsAsFactors = FALSE)
+
+res_care_int <- list()
+for (i in seq_len(nrow(care_grid))) {
+  rsp  <- care_grid$response[i]; md <- care_grid$mod[i]
+  base <- if (rsp == "display_num") merged else avo_base
+  s    <- .interaction_care(rsp, base, md)
+  lab  <- paste0(rsp, " x ", md)
+  res_care_int[[lab]] <- run_pgls(
+    rsp, type = "gaussian", direction = s$dir,
+    coef_name = paste0(COEF_3D, ":mv"),
+    formula   = as.formula(paste(rsp, "~ dim_bin * mv")),
+    dat = s$dat, label = lab)
+}
+
 cat("\n05_models.R done. Result objects (res_*) are in memory.\n")

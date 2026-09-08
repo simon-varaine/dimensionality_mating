@@ -51,6 +51,13 @@ marcondes_sheet<- "Species_data"
 path_spur      <- file.path(dir_data, "species_spur_data.csv")                      # Menezes & Palaoro 2022
 path_barber    <- file.path(dir_data, "S1_Data.xlsx")                               # Barber et al. 2024
 barber_sheet   <- "Data1 (BirdTree)"
+path_carewho   <- file.path(dir_data, "GeneralDataFrame.csv")                       # Who cares? (Dryad)
+path_devmode   <- file.path(dir_data, "evo14365-sup-0009-datasets2.xlsx")           # Cooney et al. 2021 (dev mode)
+devmode_sheet  <- 1                                                                 # first sheet (verify vs file)
+## BirdBase (care durations) set aside for now -- large/slow .xlsx; dev_pc1 covers
+## the same axis. To re-enable: pre-convert to CSV, then restore loader in 01.
+# path_birdbase  <- file.path(dir_data, "BIRDBASE v2025.1 Sekercioglu et al. Final.xlsx")
+# birdbase_sheet <- "Data"
 
 ## --- shared analysis-ready dataset (committed to GitHub) ---------------------
 ## Written by build_dataset.R, read by run_all.R. One row per species, keyed by

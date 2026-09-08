@@ -13,7 +13,8 @@
 ################################################################################
 
 stopifnot(exists("lis"), exists("avo"), exists("blio"),
-          exists("dale"), exists("spur_sp"), exists("marc_sp"), exists("barber"))
+          exists("dale"), exists("spur_sp"), exists("marc_sp"), exists("barber"),
+          exists("carew"), exists("devmode"))
 
 ## --- 2a. base = every AVONET species + taxonomy/tree, colour, spurs, systems -
 analysis <- avo %>%
@@ -27,7 +28,9 @@ analysis <- avo %>%
             by = "tip_label") %>%
   left_join(spur_sp %>% select(key, spur_hi), by = "key") %>%
   left_join(marc_sp %>% select(key, marc_poly, marc_lek, marc_system), by = "key") %>%
-  left_join(barber %>% select(key, barber_ss, barber_srr), by = "key")
+  left_join(barber %>% select(key, barber_ss, barber_srr), by = "key") %>%
+  left_join(carew %>% select(key, care_mode), by = "key") %>%
+  left_join(devmode %>% select(key, dev_pc1, dev_chickpc1), by = "key")
 
 ## --- 2b. left-join the Lislevand block (subset of species) -------------------
 lis_block <- lis %>%
@@ -104,6 +107,7 @@ analysis <- analysis %>%
     hwi, dichromatism, male_plumage, female_plumage,
     spur_hi, marc_poly, marc_lek, marc_system,
     barber_ss, barber_srr, barber_poly, barber_lek,
+    care_mode, dev_pc1, dev_chickpc1,
     ## Lislevand block (merged analyses)
     lislevand, english_name, mating_system, display_num, resource,
     harem, lek, polyandry,
@@ -134,5 +138,20 @@ cat(sprintf("  display_num (merged)     : %d   (~922)\n",  n_anchor("display_num
 cat(sprintf("  dichromatism (avo_base)  : %d   (~5220)\n", n_anchor("dichromatism")))
 cat(sprintf("  marc_poly (avo_base)     : %d   (~8278)\n", n_anchor("marc_poly")))
 cat(sprintf("  spur_hi (avo_base)       : %d   (~626)\n",  n_anchor("spur_hi")))
+
+## --- parental-care additions: coverage + dev-mode sign check ----------------
+cat("\n--- parental-care coverage ---\n")
+cat(sprintf("  care_mode (Who cares?)   : %d\n", sum(!is.na(analysis$care_mode))))
+if (sum(!is.na(analysis$care_mode)))
+  print(table(analysis$care_mode, useNA = "no"))
+cat(sprintf("  dev_pc1 (hatchling PCA)  : %d\n", sum(!is.na(analysis$dev_pc1))))
+## sign check: precocial (Galliformes/Anseriformes) vs altricial (Passeriformes)
+analysis %>%
+  filter(order %in% c("Galliformes", "Anseriformes", "Passeriformes")) %>%
+  group_by(order) %>%
+  summarise(dev_pc1_median = round(median(dev_pc1, na.rm = TRUE), 3),
+            n = sum(!is.na(dev_pc1)), .groups = "drop") %>%
+  as.data.frame() %>% print(row.names = FALSE)
+cat("  (interpret: which order sits at the precocial end tells us the PC1 sign)\n")
 
 cat("\n02_build_dataset.R done.\n")

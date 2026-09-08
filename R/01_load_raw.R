@@ -156,4 +156,44 @@ cat("Barber:", nrow(barber), "species | with SS score:",
     sum(!is.na(barber$barber_ss)), "| sex-role reversed:",
     sum(barber$barber_srr == 1, na.rm = TRUE), "\n")
 
+## --- 1h. Who cares? parental-care type (Cockburn/HBW; Jetz taxonomy) ---------
+## pc.mode: P pair/biparental, M male-only, F female-only, C cooperative, N none.
+## This is the PROXIMAL (near-circular) care moderator -> upper-bound test.
+if (!file.exists(path_carewho))
+  stop("Who cares? file not found: ", path_carewho)
+carew_raw <- read_csv(path_carewho, show_col_types = FALSE) %>% clean_names()
+cw_sp   <- get_col(carew_raw, "species")
+cw_mode <- get_col(carew_raw, "pc.?mode")
+stopifnot(!is.na(cw_sp), !is.na(cw_mode))
+carew <- carew_raw %>%
+  transmute(key       = clean_binom(.data[[cw_sp]]),
+            care_mode = str_squish(as.character(.data[[cw_mode]]))) %>%
+  filter(!is.na(key), key != "", care_mode %in% c("P", "M", "F", "C", "N")) %>%
+  distinct(key, .keep_all = TRUE)
+cat("Who cares?:", nrow(carew), "species | ",
+    paste(names(table(carew$care_mode)), table(carew$care_mode), sep = "=", collapse = " "), "\n")
+
+## --- 1i. Developmental mode (Cooney et al. 2021; hatchling/chick PCA) --------
+## Continuous altricial<->precocial axis. DISTAL, clean care moderator.
+## /!\ sign (which end = precocial) to be verified after the build.
+if (!file.exists(path_devmode))
+  stop("Dev-mode file not found: ", path_devmode)
+dev_raw <- read_excel(path_devmode, sheet = devmode_sheet) %>% clean_names()
+dv_sp <- get_col(dev_raw, "species")
+dv_h1 <- get_col(dev_raw, "hatchling.*pc.?1")
+dv_c1 <- get_col(dev_raw, "chick.*pc.?1")
+stopifnot(!is.na(dv_sp), !is.na(dv_h1))
+devmode <- dev_raw %>%
+  transmute(key          = clean_binom(.data[[dv_sp]]),
+            dev_pc1      = suppressWarnings(as.numeric(.data[[dv_h1]])),   # hatchling PC1
+            dev_chickpc1 = if (!is.na(dv_c1)) suppressWarnings(as.numeric(.data[[dv_c1]])) else NA_real_) %>%
+  filter(!is.na(key), key != "") %>%
+  distinct(key, .keep_all = TRUE)
+cat("Dev mode:", nrow(devmode), "species | with hatchling PC1:",
+    sum(!is.na(devmode$dev_pc1)), "\n")
+
 cat("01_load_raw.R done.\n")
+
+## --- 1j. BirdBase (care durations) -- set aside for now (large, slow to read;
+## dev_pc1 largely captures the same axis). To re-enable, restore the loader and
+## the joins/schema in 02/03, and pre-convert the .xlsx to a small CSV first.
