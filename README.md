@@ -102,6 +102,7 @@ extract the single file named below into `data/`.
 | `plumage_scores.csv` | male/female plumage scores | Dale et al. 2015, *Nature* |
 | `Mating_systems_master_datasheet_10nov2023.xlsx` (sheet `Species_data`) | remove any ` (n)` download suffix so the name matches | Marcondes & Douvas 2024, *Evolution* |
 | `species_spur_data.csv` | Dryad | Menezes & Palaoro 2022, *Ecol. Lett.* |
+| `S1_Data.xlsx` (sheet `Data1 (BirdTree)`) | sexual-selection intensity (0–4) + sex-role reversal | Barber et al. 2024, *PLoS Biology* |
 | `AllBirdsHackett1.tre` | 1000 Hackett "All species" trees (large; download from birdtree.org) | Jetz et al. 2012 |
 
 If a future release of any source changes its file name, either keep the old

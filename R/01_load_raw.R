@@ -137,4 +137,23 @@ cat("Marcondes:", nrow(marc_sp), "species | P =",
     sum(marc_sp$marc_poly == 1, na.rm = TRUE), "| L =",
     sum(marc_sp$marc_lek == 1, na.rm = TRUE), "\n")
 
+## --- 1g. Barber et al. 2024 (sexual-selection intensity, BirdTree) -----------
+## Sexual selection: ordinal 0 (strict monogamy) .. 4 (lekking / display posts),
+##   inferred from mating system + EPP + OSR. Broad coverage (~all birds).
+## Sex-role reversal: 0/1, used for the "polyandry more frequent in 2D" test.
+if (!file.exists(path_barber))
+  stop("Barber file not found: ", path_barber)
+barber <- read_excel(path_barber, sheet = barber_sheet) %>%
+  clean_names() %>%
+  transmute(
+    key        = clean_binom(scientific_name_bird_tree),
+    barber_ss  = suppressWarnings(as.integer(sexual_selection)),   # 0..4 intensity
+    barber_srr = suppressWarnings(as.integer(sex_role_reversal))   # 0/1
+  ) %>%
+  filter(!is.na(key), key != "") %>%
+  distinct(key, .keep_all = TRUE)
+cat("Barber:", nrow(barber), "species | with SS score:",
+    sum(!is.na(barber$barber_ss)), "| sex-role reversed:",
+    sum(barber$barber_srr == 1, na.rm = TRUE), "\n")
+
 cat("01_load_raw.R done.\n")

@@ -47,11 +47,10 @@ COEF_INT_RAW <- paste0(COEF_3D, ":resource")     # raw     (display)
 ##              lekking not predicted to fall (choice-based system).
 ################################################################################
 cat("\n########## 1. MATING SYSTEM ##########\n")
-
-res_harem <- run_pgls("harem", type = "binary", direction = "negative",
-                      label = "Harem polygyny (Lislevand)")
-res_lek   <- run_pgls("lek",   type = "binary", direction = "positive",
-                      label = "Lek/promiscuity (Lislevand)")
+## Lislevand mating-system contrasts (harem/lek) removed per revision §2.2: the
+## 1-5 scale mixes mechanistically opposite endpoints. Replaced by Marcondes
+## (clean resource-defense distinction, 1b) and Barber (broad coverage, 1c).
+## Lislevand polyandry is kept (unique contribution) in 1c.
 
 ## Independent replication (Marcondes & Douvas), on avo_base (decoupled from
 ## Lislevand), so N is not capped by Lislevand coverage.
@@ -103,6 +102,58 @@ rownames(dat_lek_rdp) <- dat_lek_rdp$tip_label
 res_marc_lek_vs_rdp <- run_pgls("lek_vs_rdp", type = "binary", direction = "positive",
                                 dat = dat_lek_rdp,
                                 label = "Lek vs RDP (Marcondes)")
+
+## --- 1c. Barber intensity + broad mating-system replication (§2.9) -----------
+cat("\n--- 1c. Barber: intensity (OUTCOME) + broad contrasts + role reversal ---\n")
+
+## (i) INTENSITY as an OUTCOME, never a covariate. Does 3D shift the intensity of
+## sexual selection? The form-not-intensity thesis predicts ~0. NB Barber scores
+## lekking as MAXIMAL intensity (4) and lekking concentrates in 3D, so 3D may even
+## raise mean intensity -- which would sharpen the 'form, not intensity' point.
+res_barber_intensity <- run_pgls("barber_ss", type = "gaussian", direction = "negative",
+                                 dat = .prep_dat(avo_base, "barber_ss"),
+                                 label = "Sexual-selection intensity (Barber, OUTCOME)")
+
+## (ii) broad, monogamy-referenced mating-system contrasts. Barber's 'strong
+## polygamy' (2-3) is general polygamy, NOT purely resource-defense (unlike
+## Marcondes); leks (4) are contrasted separately.
+res_barber_poly <- run_pgls("barber_poly", type = "binary", direction = "negative",
+                            dat = .prep_dat(avo_base, "barber_poly"),
+                            label = "Strong polygamy vs monogamy (Barber)")
+res_barber_lek  <- run_pgls("barber_lek",  type = "binary", direction = "positive",
+                            dat = .prep_dat(avo_base, "barber_lek"),
+                            label = "Lek vs monogamy (Barber)")
+
+## (iii) sex-role reversal predicted MORE frequent in 2D (framework's 2D + high
+## male-care cell). Rare & 2D-concentrated -> may separate; guard like spurs.
+srr_tab <- xtab_dim(avo_base, "barber_srr")
+cat("Sex-role reversal (Barber) by dimensionality:\n"); print(srr_tab)
+if (min_pos_cell(srr_tab) < SEP_THRESHOLD) {
+  cat(sprintf(">>> (quasi-)separation (rarest positive cell < %d): descriptive + Fisher only.\n",
+              SEP_THRESHOLD))
+  srr_fisher     <- fisher_dim(srr_tab, "SRR ~ 3D")
+  res_barber_srr <- NULL
+} else {
+  res_barber_srr <- run_pgls("barber_srr", type = "binary", direction = "negative",
+                             dat = .prep_dat(avo_base, "barber_srr"),
+                             label = "Sex-role reversal (Barber)")
+  srr_fisher <- NULL
+}
+
+## Lislevand polyandry (score 1): independent, smaller-N replication of (iii).
+poly_tab <- xtab_dim(merged, "polyandry")
+cat("Polyandry (Lislevand) by dimensionality:\n"); print(poly_tab)
+if (min_pos_cell(poly_tab) < SEP_THRESHOLD) {
+  cat(sprintf(">>> (quasi-)separation (rarest positive cell < %d): descriptive + Fisher only.\n",
+              SEP_THRESHOLD))
+  poly_fisher   <- fisher_dim(poly_tab, "polyandry ~ 3D")
+  res_polyandry <- NULL
+} else {
+  res_polyandry <- run_pgls("polyandry", type = "binary", direction = "negative",
+                            dat = .prep_dat(merged, "polyandry"),
+                            label = "Polyandry (Lislevand)")
+  poly_fisher <- NULL
+}
 
 ################################################################################
 ## 2. SIZE DIMORPHISM (SSD) + RENSCH CONTROL ----------------------------------
@@ -261,27 +312,41 @@ cat(sprintf("Total aerial lek: %d | Trochilidae: %d (%.0f%%) | distinct families
 ################################################################################
 cat("\n########## 7. PASSERIFORMES ROBUSTNESS ##########\n")
 
-res_harem_p <- run_pgls(
-  "harem", type = "binary", direction = "negative",
-  dat = .prep_dat(merged, "harem", extra_filter = rlang::quo(order == "Passeriformes")),
-  label = "Harem polygyny [Passeriformes]")
-
-## RDP within Passeriformes, with the separation guard
-d_rdp_pass <- avo_base %>%
-  filter(order == "Passeriformes", !is.na(dim_bin), !is.na(marc_poly),
+## Strong polygamy vs monogamy (Barber) within Passeriformes, separation guard
+d_bpoly_pass <- avo_base %>%
+  filter(order == "Passeriformes", !is.na(dim_bin), !is.na(barber_poly),
          !is.na(tip_label)) %>%
   distinct(tip_label, .keep_all = TRUE) %>% as.data.frame()
+rownames(d_bpoly_pass) <- d_bpoly_pass$tip_label
+tb_bpoly_pass <- xtab_dim(d_bpoly_pass, "barber_poly")
+cat(sprintf("[Strong polygamy | Passeriformes] N=%d | rarest positive cell=%d\n",
+            nrow(d_bpoly_pass), min_pos_cell(tb_bpoly_pass)))
+if (min_pos_cell(tb_bpoly_pass) < SEP_THRESHOLD) {
+  cat("  -> (quasi-)separation: not reported.\n")
+  res_barber_poly_p <- NULL
+} else {
+  res_barber_poly_p <- run_pgls("barber_poly", type = "binary", direction = "negative",
+                                dat = d_bpoly_pass,
+                                label = "Strong polygamy vs monogamy [Passeriformes]")
+}
+
+## RDP vs monogamy within Passeriformes (exclude leks), with separation guard
+d_rdp_pass <- avo_base %>%
+  filter(order == "Passeriformes", marc_system %in% c("M", "P"),
+         !is.na(dim_bin), !is.na(tip_label)) %>%
+  mutate(rdp = as.integer(marc_system == "P")) %>%
+  distinct(tip_label, .keep_all = TRUE) %>% as.data.frame()
 rownames(d_rdp_pass) <- d_rdp_pass$tip_label
-tb_rdp_pass <- xtab_dim(d_rdp_pass, "marc_poly")
-cat(sprintf("[RDP | Passeriformes] N=%d | rarest positive cell=%d\n",
+tb_rdp_pass <- xtab_dim(d_rdp_pass, "rdp")
+cat(sprintf("[RDP vs monogamy | Passeriformes] N=%d | rarest positive cell=%d\n",
             nrow(d_rdp_pass), min_pos_cell(tb_rdp_pass)))
 if (min_pos_cell(tb_rdp_pass) < SEP_THRESHOLD) {
   cat("  -> (quasi-)separation: not reported.\n")
-  res_marc_poly_p <- NULL
+  res_marc_rdp_vs_mono_p <- NULL
 } else {
-  res_marc_poly_p <- run_pgls("marc_poly", type = "binary", direction = "negative",
+  res_marc_rdp_vs_mono_p <- run_pgls("rdp", type = "binary", direction = "negative",
                               dat = d_rdp_pass,
-                              label = "Resource-defense polygamy [Passeriformes]")
+                              label = "RDP vs monogamy [Passeriformes]")
 }
 
 cat("\n05_models.R done. Result objects (res_*) are in memory.\n")

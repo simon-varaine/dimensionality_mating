@@ -13,7 +13,7 @@
 ################################################################################
 
 stopifnot(exists("lis"), exists("avo"), exists("blio"),
-          exists("dale"), exists("spur_sp"), exists("marc_sp"))
+          exists("dale"), exists("spur_sp"), exists("marc_sp"), exists("barber"))
 
 ## --- 2a. base = every AVONET species + taxonomy/tree, colour, spurs, systems -
 analysis <- avo %>%
@@ -26,7 +26,8 @@ analysis <- avo %>%
   left_join(dale %>% select(tip_label, male_plumage, female_plumage, dichromatism),
             by = "tip_label") %>%
   left_join(spur_sp %>% select(key, spur_hi), by = "key") %>%
-  left_join(marc_sp %>% select(key, marc_poly, marc_lek, marc_system), by = "key")
+  left_join(marc_sp %>% select(key, marc_poly, marc_lek, marc_system), by = "key") %>%
+  left_join(barber %>% select(key, barber_ss, barber_srr), by = "key")
 
 ## --- 2b. left-join the Lislevand block (subset of species) -------------------
 lis_block <- lis %>%
@@ -79,7 +80,17 @@ analysis <- analysis %>%
       f_mass > 0             ~ f_mass,
       !is.na(mass_avonet)    ~ mass_avonet,
       TRUE                   ~ NA_real_),
-    body_size_log = ifelse(body_mass_mean > 0, log(body_mass_mean), NA_real_)
+    body_size_log = ifelse(body_mass_mean > 0, log(body_mass_mean), NA_real_),
+
+    ## Barber mating-system contrasts, monogamy-referenced (scores 0-1 = monogamy)
+    ##   strong polygamy (2-3) vs monogamy ; lek (4) vs monogamy (mutually excl.).
+    ## NB 'strong polygamy' is general polygamy, NOT purely resource-defense.
+    barber_poly = case_when(barber_ss %in% c(2L, 3L) ~ 1L,
+                            barber_ss %in% c(0L, 1L) ~ 0L,
+                            TRUE ~ NA_integer_),
+    barber_lek  = case_when(barber_ss == 4L          ~ 1L,
+                            barber_ss %in% c(0L, 1L) ~ 0L,
+                            TRUE ~ NA_integer_)
   )
 
 ## --- 2d. keep the columns used by the analyses (drop raw M/F, mass_avonet) ---
@@ -92,6 +103,7 @@ analysis <- analysis %>%
     ## whole-clade variables (avo_base analyses)
     hwi, dichromatism, male_plumage, female_plumage,
     spur_hi, marc_poly, marc_lek, marc_system,
+    barber_ss, barber_srr, barber_poly, barber_lek,
     ## Lislevand block (merged analyses)
     lislevand, english_name, mating_system, display_num, resource,
     harem, lek, polyandry,

@@ -19,6 +19,8 @@ by_life_avo <- avo_base %>%
   summarise(N            = n(),
             pct_RDP      = round(100 * mean(marc_poly == 1, na.rm = TRUE), 1),
             pct_lek_marc = round(100 * mean(marc_lek  == 1, na.rm = TRUE), 1),
+            ss_mean      = round(mean(barber_ss, na.rm = TRUE), 2),
+            pct_srr      = round(100 * mean(barber_srr == 1, na.rm = TRUE), 1),
             dichrom_med  = round(median(dichromatism,   na.rm = TRUE), 2),
             male_med     = round(median(male_plumage,   na.rm = TRUE), 2),
             female_med   = round(median(female_plumage, na.rm = TRUE), 2),
@@ -39,7 +41,8 @@ table1 <- by_life_avo %>%
   mutate(primary_lifestyle = factor(primary_lifestyle, levels = lifestyle_order)) %>%
   arrange(primary_lifestyle) %>%
   ## column order as in the manuscript Table 1 (+ male/female decomposition)
-  select(primary_lifestyle, N, pct_poly, pct_lek_lis, pct_RDP, pct_lek_marc,
+  select(primary_lifestyle, N, pct_RDP, pct_lek_marc, ss_mean, pct_srr,
+         pct_poly, pct_lek_lis,
          ssd_mass_med, display_med, dichrom_med, male_med, female_med, pct_spur)
 
 cat("\n=== TABLE 1: raw values by lifestyle ===\n")
@@ -63,6 +66,8 @@ table1_n <- Reduce(function(a, b) left_join(a, b, by = "primary_lifestyle"), lis
   den_by_life(merged,   "ssd_mass",     "n_ssd_mass"),
   den_by_life(merged,   "display_num",  "n_display"),
   den_by_life(avo_base, "marc_poly",    "n_marcondes"),      # % RDP, % lek (Marcondes)
+  den_by_life(avo_base, "barber_ss",    "n_barber"),         # intensity + SS contrasts
+  den_by_life(avo_base, "barber_srr",   "n_srr"),            # sex-role reversal
   den_by_life(avo_base, "dichromatism", "n_plumage"),        # dichrom, male, female
   den_by_life(avo_base, "spur_hi",      "n_spur")
 )) %>%
@@ -97,8 +102,12 @@ cnt <- function(data, resp, clade = NULL, extra = NULL) {
 
 tableA1 <- as.data.frame(do.call(rbind, list(
   ## mating system
-  "Harem / lek (Lislevand)"             = cnt(merged,   "harem"),
-  "Resource-defense polygamy / lekking" = cnt(avo_base, "marc_poly"),
+  "Sexual-selection intensity (Barber)"  = cnt(avo_base, "barber_ss"),
+  "Strong polygamy vs monogamy (Barber)" = cnt(avo_base, "barber_poly"),
+  "Lek vs monogamy (Barber)"             = cnt(avo_base, "barber_lek"),
+  "RDP / lekking (Marcondes)"            = cnt(avo_base, "marc_poly"),
+  "Sex-role reversal (Barber)"           = cnt(avo_base, "barber_srr"),
+  "Polyandry (Lislevand)"                = cnt(merged,   "polyandry"),
   ## contest-related
   "Mass dimorphism"                     = cnt(merged,   "ssd_mass"),
   "Tarsus dimorphism"                   = cnt(merged,   "ssd_tarsus"),
@@ -112,7 +121,7 @@ tableA1 <- as.data.frame(do.call(rbind, list(
   "Dichromatism (main)"                 = cnt(avo_base, "dichromatism"),
   "Dichromatism x resource"             = cnt(merged,   "dichromatism", extra = "resource"),
   ## within-Passeriformes robustness
-  "Harem [Passeriformes]"               = cnt(merged,   "harem",        "Passeriformes"),
+  "Strong polygamy [Passeriformes]"     = cnt(avo_base, "barber_poly",  "Passeriformes"),
   "RDP [Passeriformes]"                 = cnt(avo_base, "marc_poly",    "Passeriformes"),
   "Mass dim. [Passeriformes]"           = cnt(merged,   "ssd_mass",     "Passeriformes"),
   "Tarsus dim. [Passeriformes]"         = cnt(merged,   "ssd_tarsus",   "Passeriformes"),
@@ -147,10 +156,11 @@ row_from_res <- function(res, label) {
   )
 }
 tableA2 <- bind_rows(
-  row_from_res(res_harem,        "Harem polygyny (Lislevand)"),
-  row_from_res(res_marc_poly,    "Resource-defense polygamy (Marcondes)"),
-  row_from_res(res_lek,          "Lek / promiscuity (Lislevand)"),
-  row_from_res(res_marc_lek,     "Lekking (Marcondes)"),
+  row_from_res(res_barber_poly,      "Strong polygamy vs monogamy (Barber)"),
+  row_from_res(res_marc_rdp_vs_mono, "Resource-defense polygamy vs monogamy (Marcondes)"),
+  row_from_res(res_barber_lek,       "Lek vs monogamy (Barber)"),
+  row_from_res(res_marc_lek_vs_mono, "Lekking vs monogamy (Marcondes)"),
+  row_from_res(res_barber_intensity, "Sexual-selection intensity (Barber, OUTCOME)"),
   row_from_res(res_ssd_mass,     "Mass dimorphism"),
   row_from_res(res_ssd_tarsus,   "Tarsus dimorphism"),
   row_from_res(res_ssd_wing,     "Wing dimorphism"),

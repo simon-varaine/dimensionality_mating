@@ -91,19 +91,19 @@ cat("\n=== Figure 1 ===\n")
 
 ## panel A: mating system (log-odds)
 figA_df <- bind_rows(
-  summ_logodds(res_harem,     "Harem polygyny (Lislevand)"),
-  summ_logodds(res_lek,       "Lek / promiscuity (Lislevand)"),
-  summ_logodds(res_marc_poly, "Resource-defense polygamy (Marcondes)"),
-  summ_logodds(res_marc_lek,  "Lekking (Marcondes)")
+  summ_logodds(res_barber_poly,      "Strong polygamy vs monogamy (Barber)"),
+  summ_logodds(res_marc_rdp_vs_mono, "Resource-defense polygamy vs monogamy (Marcondes)"),
+  summ_logodds(res_barber_lek,       "Lek vs monogamy (Barber)"),
+  summ_logodds(res_marc_lek_vs_mono, "Lekking vs monogamy (Marcondes)")
 ) %>%
   mutate(label = factor(label, levels = rev(c(
-           "Harem polygyny (Lislevand)",
-           "Resource-defense polygamy (Marcondes)",
-           "Lek / promiscuity (Lislevand)",
-           "Lekking (Marcondes)"))),
+           "Strong polygamy vs monogamy (Barber)",
+           "Resource-defense polygamy vs monogamy (Marcondes)",
+           "Lek vs monogamy (Barber)",
+           "Lekking vs monogamy (Marcondes)"))),
          couleur = .fig_colour(median, lo, hi))
 figA <- make_forest(figA_df,
-                    "A. Mating system (phylogenetic logistic regression, log-odds)",
+                    "A. Mating system (log-odds, 3D vs 2D; monogamy-referenced)",
                     "Log-odds (3D vs 2D)")
 
 ## panel B: morphology + behaviour (z-scored)
@@ -229,19 +229,19 @@ cat("\n=== Figure 3 ===\n")
 
 ## panel A: harem + RDP (lek not estimable within Passeriformes)
 figA_pass_df <- bind_rows(
-  summ_logodds(res_harem_p,     "Harem polygyny (Lislevand)"),
-  summ_logodds(res_marc_poly_p, "Resource-defense polygamy (Marcondes)")
+  summ_logodds(res_marc_rdp_vs_mono_p, "Resource-defense polygamy vs monogamy (Marcondes)"),
+  summ_logodds(res_barber_poly_p,      "Strong polygamy vs monogamy (Barber)")
 )
 if (nrow(figA_pass_df) == 0)
   figA_pass_df <- data.frame(label = "(no estimable mating-system model)",
                              median = 0, lo = 0, hi = 0)
 figA_pass_df <- figA_pass_df %>%
   mutate(label = factor(label, levels = rev(c(
-           "Harem polygyny (Lislevand)",
-           "Resource-defense polygamy (Marcondes)"))),
+           "Resource-defense polygamy vs monogamy (Marcondes)",
+           "Strong polygamy vs monogamy (Barber)"))),
          couleur = .fig_colour(median, lo, hi))
 figA_pass <- make_forest(figA_pass_df,
-                         "A. Mating system (Passeriformes only; lek not estimable)",
+                         "A. Mating system (Passeriformes only; monogamy-referenced; lek not estimable)",
                          "Log-odds (3D vs 2D)")
 
 ## panel B: z-scored morphology + behaviour, Passeriformes only
