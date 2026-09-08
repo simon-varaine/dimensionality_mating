@@ -310,4 +310,70 @@ save_two_panels(figA_pass, figB_pass, file.path(dir_out, "fig3_passeriformes.pdf
                 "Within-Passeriformes replication of Fig. 1")
 cat("  saved fig3_passeriformes.pdf\n")
 
+################################################################################
+## FIGURE 4: care moderation — dim_bin x developmental mode (dev_pc1) ---------
+## Exploratory. Predicted trait value in 2D vs 3D across the developmental-mode
+## axis (hatchling PC1: low = altricial/high care, high = precocial/low care).
+## Prediction: the 2D->3D gap in male ornament / display WIDENS toward the
+## precocial (low-care) end. Fit on tree 1, raw dev_pc1 (prediction is invariant
+## to moderator scaling). NB dev_pc1 is compressed for passerine-only plumage.
+################################################################################
+cat("\n=== Figure 4 (developmental-mode interaction) ===\n")
+
+marginal_dev <- function(response, base, trait_label) {
+  d <- base %>%
+    filter(!is.na(dim_bin), !is.na(.data[[response]]),
+           !is.na(dev_pc1), !is.na(tip_label)) %>%
+    distinct(tip_label, .keep_all = TRUE) %>% as.data.frame()
+  rownames(d) <- d$tip_label
+  tr  <- ape::drop.tip(trees[[1]], setdiff(trees[[1]]$tip.label, rownames(d)))
+  d1  <- d[tr$tip.label, ]
+  fit <- phylolm::phylolm(as.formula(paste(response, "~ dim_bin * dev_pc1")),
+                          data = d1, phy = tr, model = "lambda")
+  co  <- coef(fit)
+  gx  <- seq(quantile(d1$dev_pc1, 0.05), quantile(d1$dev_pc1, 0.95),
+             length.out = 60)
+  g   <- expand.grid(dim_bin = factor(DIM_LEVELS, levels = DIM_LEVELS), dev_pc1 = gx)
+  g$d3   <- as.integer(g$dim_bin == "3D")
+  g$pred <- co["(Intercept)"] + co[COEF_3D] * g$d3 +
+            co["dev_pc1"] * g$dev_pc1 +
+            co[paste0(COEF_3D, ":dev_pc1")] * g$d3 * g$dev_pc1
+  g$trait <- trait_label
+  g
+}
+
+fig4_df <- bind_rows(
+  marginal_dev("male_plumage", avo_base, "Male plumage elaboration"),
+  marginal_dev("dichromatism", avo_base, "Plumage dichromatism (M-F)"),
+  marginal_dev("display_num",  merged,   "Display agility (1-5)")
+)
+fig4_df$trait <- factor(fig4_df$trait,
+                        levels = c("Male plumage elaboration",
+                                   "Plumage dichromatism (M-F)",
+                                   "Display agility (1-5)"))
+
+fig4 <- ggplot(fig4_df, aes(dev_pc1, pred, colour = dim_bin)) +
+  geom_line(linewidth = 1.1) +
+  facet_wrap(~ trait, scales = "free") +
+  scale_colour_manual(values = c("2D" = "#D55E00", "3D" = "#009E73"), name = NULL) +
+  labs(
+    title = "Does the 3D effect on choice traits depend on developmental mode?",
+    subtitle = "Predicted trait value from the PGLS interaction model (tree 1); exploratory",
+    x = "Developmental mode (hatchling PC1):  altricial / long care  \u2192  precocial / short care",
+    y = "Predicted trait value",
+    caption = paste0(
+      "Prediction: the 2D\u21923D gap widens toward the precocial (low-care) end. ",
+      "Direction is consistent for male plumage and display (not for the M-F difference),\n",
+      "but not statistically robust. dev_pc1 is compressed for passerine-only plumage; ",
+      "y-axes are trait-specific and not comparable in magnitude.")) +
+  theme_bw(base_size = 11) +
+  theme(plot.title = element_text(face = "bold"),
+        plot.caption = element_text(colour = "grey50", size = 8),
+        strip.text = element_text(face = "bold"),
+        legend.position = "top", panel.grid.minor = element_blank())
+
+ggsave(file.path(dir_out, "fig4_devmode_interaction.pdf"), fig4,
+       width = 11, height = 4.2)
+cat("  saved fig4_devmode_interaction.pdf\n")
+
 cat("\n06_figures.R done.\n")
