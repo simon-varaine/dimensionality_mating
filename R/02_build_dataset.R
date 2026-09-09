@@ -14,7 +14,8 @@
 
 stopifnot(exists("lis"), exists("avo"), exists("blio"),
           exists("dale"), exists("spur_sp"), exists("marc_sp"), exists("barber"),
-          exists("carew"), exists("devmode"))
+          exists("carew"), exists("devmode"), exists("volancy"), exists("allo"),
+          exists("uvdi"), exists("sexrole"))
 
 ## --- 2a. base = every AVONET species + taxonomy/tree, colour, spurs, systems -
 analysis <- avo %>%
@@ -30,7 +31,11 @@ analysis <- avo %>%
   left_join(marc_sp %>% select(key, marc_poly, marc_lek, marc_system), by = "key") %>%
   left_join(barber %>% select(key, barber_ss, barber_srr), by = "key") %>%
   left_join(carew %>% select(key, care_mode), by = "key") %>%
-  left_join(devmode %>% select(key, dev_pc1, dev_chickpc1), by = "key")
+  left_join(devmode %>% select(key, dev_pc1, dev_chickpc1), by = "key") %>%
+  left_join(volancy %>% select(key, flightless), by = "key") %>%
+  left_join(allo %>% select(key, allopreen, par_coop, age_indep), by = "key") %>%
+  left_join(uvdi %>% select(key, uv_cd), by = "key") %>%
+  left_join(sexrole %>% select(key, care_cont, dichro_sr), by = "key")
 
 ## --- 2b. left-join the Lislevand block (subset of species) -------------------
 lis_block <- lis %>%
@@ -108,6 +113,8 @@ analysis <- analysis %>%
     spur_hi, marc_poly, marc_lek, marc_system,
     barber_ss, barber_srr, barber_poly, barber_lek,
     care_mode, dev_pc1, dev_chickpc1,
+    flightless, allopreen, par_coop, age_indep, uv_cd,
+    care_cont, dichro_sr,
     ## Lislevand block (merged analyses)
     lislevand, english_name, mating_system, display_num, resource,
     harem, lek, polyandry,
@@ -153,5 +160,22 @@ analysis %>%
             n = sum(!is.na(dev_pc1)), .groups = "drop") %>%
   as.data.frame() %>% print(row.names = FALSE)
 cat("  (interpret: which order sits at the precocial end tells us the PC1 sign)\n")
+cat(sprintf("  flightless (Sayol)       : %d (of which =1: %d)\n",
+            sum(!is.na(analysis$flightless)), sum(analysis$flightless == 1, na.rm = TRUE)))
+cat(sprintf("  allopreen (Kenny)        : %d (=1: %d) | par_coop: %d | age_indep: %d\n",
+            sum(!is.na(analysis$allopreen)), sum(analysis$allopreen == 1, na.rm = TRUE),
+            sum(!is.na(analysis$par_coop)), sum(!is.na(analysis$age_indep))))
+cat(sprintf("  UV dichromatism          : %d\n", sum(!is.na(analysis$uv_cd))))
+cat(sprintf("  care_cont / dichro_sr    : %d / %d\n",
+            sum(!is.na(analysis$care_cont)), sum(!is.na(analysis$dichro_sr))))
+## care sign check: female-only care (Trochilidae) vs male/reversed care
+## (Jacanidae, Rheidae). Whichever family sits at which end fixes the sign.
+analysis %>%
+  filter(family %in% c("Trochilidae", "Jacanidae", "Rheidae")) %>%
+  group_by(family) %>%
+  summarise(care_median = round(median(care_cont, na.rm = TRUE), 3),
+            n = sum(!is.na(care_cont)), .groups = "drop") %>%
+  as.data.frame() %>% print(row.names = FALSE)
+cat("  (Trochilidae = female-only care; Jacanidae/Rheidae = male/reversed care)\n")
 
 cat("\n02_build_dataset.R done.\n")

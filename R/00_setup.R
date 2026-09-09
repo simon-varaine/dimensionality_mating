@@ -58,6 +58,12 @@ devmode_sheet  <- 1                                                             
 ## the same axis. To re-enable: pre-convert to CSV, then restore loader in 01.
 # path_birdbase  <- file.path(dir_data, "BIRDBASE v2025.1 Sekercioglu et al. Final.xlsx")
 # birdbase_sheet <- "Data"
+path_volancy   <- file.path(dir_data, "DataFileS2.xlsx")                            # Sayol et al. 2020 (volancy)
+path_allopreen <- file.path(dir_data, "arx078_suppl_kenny_esm_tables1.xlsx")        # Kenny et al. 2017
+allopreen_sheet<- "Kenny_TableS1_ESM"
+path_uvdichrom <- file.path(dir_data, "MergedCDLatSet.xlsx")                        # UV dichromatism (JZO 2025)
+path_sexrole   <- file.path(dir_data, "SexroleEcologyFinal.xlsx")                   # sex-role ecology (care, dichro)
+sexrole_sheet  <- "Data"
 
 ## --- shared analysis-ready dataset (committed to GitHub) ---------------------
 ## Written by build_dataset.R, read by run_all.R. One row per species, keyed by

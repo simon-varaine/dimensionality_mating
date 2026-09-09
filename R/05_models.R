@@ -114,6 +114,14 @@ res_barber_intensity <- run_pgls("barber_ss", type = "gaussian", direction = "ne
                                  dat = .prep_dat(avo_base, "barber_ss"),
                                  label = "Sexual-selection intensity (Barber, OUTCOME)")
 
+## robustness: is the small negative intensity effect driven by the 2D-concentrated
+## sex-role-reversed taxa (which Barber may score as intense)? Refit excluding them.
+res_barber_intensity_noSRR <- run_pgls(
+  "barber_ss", type = "gaussian", direction = "negative",
+  dat = .prep_dat(avo_base, "barber_ss",
+                  extra_filter = rlang::quo(is.na(barber_srr) | barber_srr == 0)),
+  label = "Intensity excl. sex-role-reversed (Barber)")
+
 ## (ii) broad, monogamy-referenced mating-system contrasts. Barber's 'strong
 ## polygamy' (2-3) is general polygamy, NOT purely resource-defense (unlike
 ## Marcondes); leks (4) are contrasted separately.
@@ -175,6 +183,16 @@ res_rensch <- lapply(ssd_traits, function(v)
   run_pgls_ctrl(v, covar = "body_size_log", direction = "negative",
                 label = v, type = "gaussian", data = merged))
 names(res_rensch) <- ssd_traits
+
+## Jan's request: tail dimorphism controlled for MASS dimorphism (not total mass).
+## Tests whether the 3D tail reduction is just the general size/contest axis, or
+## whether a tail-specific (ornamental?) component behaves differently once the
+## contest/size component is removed. (A hand-wing-index variant would further
+## remove the aerodynamic component -- worth a look if this is suggestive.)
+res_tail_ctrl_massdim <- run_pgls_ctrl("ssd_tail", covar = "ssd_mass",
+                                       direction = "negative",
+                                       label = "Tail dim. | mass dim.",
+                                       type = "gaussian", data = merged)
 
 ################################################################################
 ## 3. DISPLAY AGILITY ---------------------------------------------------------
@@ -395,6 +413,183 @@ for (i in seq_len(nrow(care_grid))) {
     coef_name = paste0(COEF_3D, ":mv"),
     formula   = as.formula(paste(rsp, "~ dim_bin * mv")),
     dat = s$dat, label = lab)
+}
+
+################################################################################
+## 9. INTENSITY MODERATION (non-circular channel-switch test)          [rev.] --
+## Does a given AMOUNT of sexual selection buy CONTEST traits in 2D but CHOICE
+## traits in 3D? Fit  trait ~ dim_bin * intensity(Barber).
+##   - intensity is measured independently of the morphology/plumage/display
+##     traits, and is ~orthogonal to dimensionality (main effect -0.085), so the
+##     interaction is NOT circular (unlike the main effect of mating system);
+##   - applied to FORM traits only -- NOT to mating-system outcomes (circular);
+##   - sex-role-reversed species EXCLUDED so intensity reflects male-biased
+##     polygyny, not female-female competition (which would flip the prediction).
+## Predicted dim_bin3D:intensity sign:
+##   contest traits (SSD)               -> negative (intensity buys dimorphism in 2D)
+##   choice traits (dichrom/male/display)-> positive (intensity buys ornament in 3D)
+################################################################################
+cat("\n########## 9. INTENSITY MODERATION (channel switch) ##########\n")
+
+int_grid <- data.frame(
+  response = c("ssd_mass", "ssd_tarsus", "ssd_wing", "ssd_bill", "ssd_tail",
+               "dichromatism", "male_plumage", "female_plumage", "display_num"),
+  base_nm  = c(rep("merged", 5), "avo_base", "avo_base", "avo_base", "merged"),
+  dir      = c(rep("negative", 5), "positive", "positive", "positive", "positive"),
+  stringsAsFactors = FALSE)
+
+res_int_mod <- list()
+for (i in seq_len(nrow(int_grid))) {
+  rsp  <- int_grid$response[i]
+  base <- get(int_grid$base_nm[i])
+  d <- base %>%
+    filter(!is.na(dim_bin), !is.na(.data[[rsp]]), !is.na(barber_ss), !is.na(tip_label),
+           is.na(barber_srr) | barber_srr == 0) %>%   # exclude sex-role-reversed:
+    mutate(ss_z = as.numeric(scale(barber_ss))) %>%    # intensity = male-biased polygyny
+    distinct(tip_label, .keep_all = TRUE) %>% as.data.frame()
+  rownames(d) <- d$tip_label
+  res_int_mod[[rsp]] <- run_pgls(
+    rsp, type = "gaussian", direction = int_grid$dir[i],
+    coef_name = paste0(COEF_3D, ":ss_z"),
+    formula   = as.formula(paste(rsp, "~ dim_bin * ss_z")),
+    dat = d, label = paste0(rsp, " x intensity"))
+}
+
+################################################################################
+## 10. ADDITIONAL SIGNALS & ROBUSTNESS (exploratory)                   [rev.] --
+##  (a) Allopreening (Kenny 2017, 0/1): a pair-bond / "patience" signal -- the
+##      mutual-choice channel plumage cannot capture. Predicted UP in 3D.
+##  (b) UV-inclusive dichromatism (colour discriminability): robustness for the
+##      human-vision Dale dichromatism. Predicted UP in 3D.
+##  (c) Flightlessness (Sayol 2020): hard but rare 2D proxy (clade-concentrated)
+##      -> descriptive check only, never a powered main-effect re-test.
+################################################################################
+cat("\n########## 10. ADDITIONAL SIGNALS & ROBUSTNESS ##########\n")
+
+## (a) allopreening -- new mutual-bond / patience signal
+res_allopreen <- run_pgls("allopreen", type = "binary", direction = "positive",
+                          dat = .prep_dat(avo_base, "allopreen"),
+                          label = "Allopreening (Kenny)")
+
+## (b) UV-inclusive dichromatism -- robustness of the Dale dichromatism effect
+res_uv_dichrom <- run_pgls("uv_cd", type = "gaussian", direction = "positive",
+                           dat = .prep_dat(avo_base, "uv_cd"),
+                           label = "UV colour discriminability")
+
+## (c) flightlessness -- descriptive only (rare, clade-concentrated)
+fless_tab <- xtab_dim(avo_base, "flightless")
+cat("Flightlessness by dimensionality:\n"); print(fless_tab)
+if (min_pos_cell(fless_tab) < SEP_THRESHOLD) {
+  cat(sprintf(">>> (quasi-)separation (rarest positive cell < %d): descriptive + Fisher only.\n",
+              SEP_THRESHOLD))
+  fless_fisher <- fisher_dim(fless_tab, "flightless ~ 3D")
+} else {
+  fless_fisher <- fisher_dim(fless_tab, "flightless ~ 3D")
+}
+
+################################################################################
+## 11. HWI ROBUSTNESS: dimensionality proxied by hand-wing index       [rev.] --
+## HWI (continuous flight efficiency ~ escape capacity) as an ALTERNATIVE,
+## independent operationalization of dimensionality (HIGH HWI = more 3D-like).
+## Triangulation with the foraging 2D/3D contrast. Displays EXCLUDED (HWI and
+## display agility are near-tautological). Caveat: HWI also indexes dispersal/
+## migration, so read as robustness, not a clean causal test. Covers all species
+## with HWI (incl. aquatic/generalist), not just the 2D/3D categories.
+## Predicted sign of the hwi coefficient mirrors the 3D effect:
+##   contest (SSD, spurs, strong-poly/RDP, SRR, polyandry) -> negative
+##   choice  (dichrom, male plumage, uv_cd, lek)           -> positive
+################################################################################
+## SET ASIDE (not run): HWI fails as a dimensionality proxy -- opposite sign on
+## intensity (+0.20, p=1e-24, vs -0.085 for foraging), confounded by dispersal/
+## migration. Kept for reference; wrapped in if(FALSE). Re-enable to reproduce
+## the negative result that justifies choosing the foraging-lifestyle proxy.
+if (FALSE) {
+cat("\n########## 11. HWI ROBUSTNESS (alternative dimensionality proxy) ##########\n")
+
+.hwi_dat <- function(response) {
+  d <- avo_base %>%
+    filter(!is.na(.data[[response]]), !is.na(hwi), !is.na(tip_label)) %>%
+    mutate(hwi_z = as.numeric(scale(hwi))) %>%
+    distinct(tip_label, .keep_all = TRUE) %>% as.data.frame()
+  rownames(d) <- d$tip_label
+  d
+}
+
+hwi_grid <- data.frame(
+  response = c("ssd_mass", "ssd_tarsus", "ssd_wing", "ssd_bill", "ssd_tail",
+               "spur_hi",
+               "dichromatism", "male_plumage", "female_plumage", "uv_cd",
+               "barber_poly", "marc_poly", "barber_lek", "marc_lek",
+               "barber_ss", "allopreen", "barber_srr", "polyandry"),
+  type = c("gaussian", "gaussian", "gaussian", "gaussian", "gaussian",
+           "binary",
+           "gaussian", "gaussian", "gaussian", "gaussian",
+           "binary", "binary", "binary", "binary",
+           "gaussian", "binary", "binary", "binary"),
+  dir  = c("negative", "negative", "negative", "negative", "negative",
+           "negative",
+           "positive", "positive", "positive", "positive",
+           "negative", "negative", "positive", "positive",
+           "negative", "positive", "negative", "negative"),
+  stringsAsFactors = FALSE)
+
+res_hwi <- list()
+for (i in seq_len(nrow(hwi_grid))) {
+  rsp <- hwi_grid$response[i]
+  res_hwi[[rsp]] <- run_pgls(
+    rsp, type = hwi_grid$type[i], direction = hwi_grid$dir[i],
+    coef_name = "hwi_z", formula = as.formula(paste(rsp, "~ hwi_z")),
+    dat = .hwi_dat(rsp), label = paste0(rsp, " ~ HWI"))
+}
+}  # end if(FALSE): HWI set aside (fails as a dimensionality proxy; see synthesis)
+
+################################################################################
+## 12. CONTINUOUS-CARE MODERATION + broad dichromatism                 [rev.] --
+## Re-test care moderation with a CONTINUOUS care measure (relative investment
+## of the sexes; better coverage/power than the F-vs-P binary that failed).
+## Also a broad-coverage dichromatism (dichro_sr, ~9960 spp, all clades) both as
+## a robustness main effect and as an interaction response.
+## /!\ care_cont sign: see the sign check in 02_build_dataset -- read the
+## interaction sign together with which end is female-biased care.
+## Responses cover the choice/patience side (incl. allopreening), as requested.
+################################################################################
+cat("\n########## 12. CONTINUOUS-CARE MODERATION + broad dichro ##########\n")
+
+## broad-coverage dichromatism main effect (robustness of the Dale result)
+res_dichro_sr <- run_pgls("dichro_sr", type = "gaussian", direction = "positive",
+                          dat = .prep_dat(avo_base, "dichro_sr"),
+                          label = "Plumage dimorphism (broad, main)")
+
+## continuous-care interaction: trait ~ dim_bin * care_cont
+## continuous-care interaction: trait ~ dim_bin * care_cont
+## (care_cont > 0 = female-biased care; see sign check). Choice traits predicted
+## positive (3D ornament stronger under female care); contest traits (SSD)
+## exploratory, predicted negative (dimorphism drop in 3D larger under female care).
+care2_grid <- data.frame(
+  response = c("dichromatism", "male_plumage", "dichro_sr", "display_num", "allopreen",
+               "ssd_mass", "ssd_tarsus", "ssd_wing", "ssd_bill", "ssd_tail"),
+  base_nm  = c("avo_base", "avo_base", "avo_base", "merged", "avo_base",
+               "avo_base", "avo_base", "avo_base", "avo_base", "avo_base"),
+  type     = c("gaussian", "gaussian", "gaussian", "gaussian", "binary",
+               "gaussian", "gaussian", "gaussian", "gaussian", "gaussian"),
+  dir      = c("positive", "positive", "positive", "positive", "positive",
+               "negative", "negative", "negative", "negative", "negative"),
+  stringsAsFactors = FALSE)
+
+res_care2_int <- list()
+for (i in seq_len(nrow(care2_grid))) {
+  rsp  <- care2_grid$response[i]
+  base <- get(care2_grid$base_nm[i])
+  d <- base %>%
+    filter(!is.na(dim_bin), !is.na(.data[[rsp]]), !is.na(care_cont), !is.na(tip_label)) %>%
+    mutate(care_z = as.numeric(scale(care_cont))) %>%
+    distinct(tip_label, .keep_all = TRUE) %>% as.data.frame()
+  rownames(d) <- d$tip_label
+  res_care2_int[[rsp]] <- run_pgls(
+    rsp, type = care2_grid$type[i], direction = care2_grid$dir[i],
+    coef_name = paste0(COEF_3D, ":care_z"),
+    formula   = as.formula(paste(rsp, "~ dim_bin * care_z")),
+    dat = d, label = paste0(rsp, " x care(continuous)"))
 }
 
 cat("\n05_models.R done. Result objects (res_*) are in memory.\n")

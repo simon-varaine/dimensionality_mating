@@ -192,6 +192,55 @@ devmode <- dev_raw %>%
 cat("Dev mode:", nrow(devmode), "species | with hatchling PC1:",
     sum(!is.na(devmode$dev_pc1)), "\n")
 
+## --- 1k. Volancy (Sayol et al. 2020): flightlessness (hard, rare 2D proxy) ---
+if (!file.exists(path_volancy)) stop("Volancy file not found: ", path_volancy)
+vol_raw <- read_excel(path_volancy) %>% clean_names()
+volancy <- vol_raw %>%
+  transmute(key        = clean_binom(.data[[get_col(vol_raw, "^species$")]]),
+            flightless = as.integer(str_detect(str_to_lower(.data[[get_col(vol_raw, "volancy")]]),
+                                                "flightless"))) %>%
+  filter(!is.na(key), key != "") %>% distinct(key, .keep_all = TRUE)
+cat("Volancy:", nrow(volancy), "species | flightless:",
+    sum(volancy$flightless == 1, na.rm = TRUE), "\n")
+
+## --- 1l. Allopreening + care traits (Kenny et al. 2017) ----------------------
+## allopreen (0/1): a pair-bond / "patience" signal (mutual-choice channel).
+## par_coop (continuous): parental cooperation. age_indep (d): care duration.
+if (!file.exists(path_allopreen)) stop("Allopreening file not found: ", path_allopreen)
+allo_raw <- read_excel(path_allopreen, sheet = allopreen_sheet) %>% clean_names()
+allo <- allo_raw %>%
+  transmute(key       = clean_binom(.data[[get_col(allo_raw, "^species$")]]),
+            allopreen = suppressWarnings(as.integer(.data[[get_col(allo_raw, "allopreen_pairs")]])),
+            par_coop  = suppressWarnings(as.numeric(.data[[get_col(allo_raw, "parental_cooperation_score")]])),
+            age_indep = suppressWarnings(as.numeric(.data[[get_col(allo_raw, "age_of_independence")]]))) %>%
+  filter(!is.na(key), key != "") %>% distinct(key, .keep_all = TRUE)
+cat("Allopreening:", nrow(allo), "species | allopreen=1:",
+    sum(allo$allopreen == 1, na.rm = TRUE), "| par_coop:",
+    sum(!is.na(allo$par_coop)), "| age_indep:", sum(!is.na(allo$age_indep)), "\n")
+
+## --- 1m. UV-inclusive dichromatism (colour discriminability; JZO 2025) -------
+if (!file.exists(path_uvdichrom)) stop("UV dichromatism file not found: ", path_uvdichrom)
+uv_raw <- read_excel(path_uvdichrom) %>% clean_names()
+uvdi <- uv_raw %>%
+  transmute(key   = clean_binom(.data[[get_col(uv_raw, "^species$")]]),
+            uv_cd = suppressWarnings(as.numeric(.data[[get_col(uv_raw, "colour_discriminability_absolute")]]))) %>%
+  filter(!is.na(key), key != "") %>% distinct(key, .keep_all = TRUE)
+cat("UV dichromatism:", nrow(uvdi), "species | with CD:", sum(!is.na(uvdi$uv_cd)), "\n")
+
+## --- 1n. Sex-role ecology (Tobias/Szekely): continuous care + broad dichro ---
+## care_cont : relative investment of the sexes in parental care (continuous) --
+##   a better proximal care moderator than the F-vs-P binary (more coverage/power).
+## dichro_sr : plumage dimorphism score, near-complete coverage (~9960, all clades).
+if (!file.exists(path_sexrole)) stop("Sex-role file not found: ", path_sexrole)
+sr_raw <- read_excel(path_sexrole, sheet = sexrole_sheet) %>% clean_names()
+sexrole <- sr_raw %>%
+  transmute(key       = clean_binom(.data[[get_col(sr_raw, "^species$")]]),
+            care_cont = suppressWarnings(as.numeric(.data[[get_col(sr_raw, "^care$")]])),
+            dichro_sr = suppressWarnings(as.numeric(.data[[get_col(sr_raw, "^dichro$")]]))) %>%
+  filter(!is.na(key), key != "") %>% distinct(key, .keep_all = TRUE)
+cat("Sex-role ecology:", nrow(sexrole), "species | care:",
+    sum(!is.na(sexrole$care_cont)), "| dichro:", sum(!is.na(sexrole$dichro_sr)), "\n")
+
 cat("01_load_raw.R done.\n")
 
 ## --- 1j. BirdBase (care durations) -- set aside for now (large, slow to read;
