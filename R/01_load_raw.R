@@ -218,7 +218,7 @@ cat("Allopreening:", nrow(allo), "species | allopreen=1:",
     sum(allo$allopreen == 1, na.rm = TRUE), "| par_coop:",
     sum(!is.na(allo$par_coop)), "| age_indep:", sum(!is.na(allo$age_indep)), "\n")
 
-## --- 1m. UV-inclusive dichromatism (colour discriminability; JZO 2025) -------
+## --- 1m. UV-inclusive dichromatism (colour discriminability; Villar et al. 2025)
 if (!file.exists(path_uvdichrom)) stop("UV dichromatism file not found: ", path_uvdichrom)
 uv_raw <- read_excel(path_uvdichrom) %>% clean_names()
 uvdi <- uv_raw %>%

@@ -22,9 +22,36 @@ original third-party datasets in `data/` (not shared here — see the manifest).
 source("build_dataset.R")   # writes data-derived/analysis_data.csv
 ```
 
-Outputs (figures + tables) are written to `output/`. A full `run_all.R` fits
-every model across 100 trees and takes on the order of a few to a few tens of
-minutes depending on the machine.
+A full `run_all.R` fits every model across 100 trees (~30-40 min on a laptop) and
+caches the results in `output/model_results.rds`. To redraw figures and tables
+from the cache without refitting (a few seconds):
+
+```r
+REFIT <- FALSE; source("run_all.R")
+```
+
+## Outputs (paper-ready)
+
+| File | Content | In the paper |
+|------|---------|--------------|
+| `output/tables/table1_descriptives.tex` | every response by foraging lifestyle (% or mean (SD), with *n*) | Table 1 |
+| `output/figures/fig1_main_effects.pdf` | main (bivariate) effects of 3D, 90% + 95% CIs | Figure 1 |
+| `output/tables/tableS1_main_effects.tex` | main effects, full statistics (N 2D/3D, estimate, CI, % trees, one- and two-sided p) | Table S1 |
+| `output/tables/tableS2_controls.tex` | main effects with controls / on subsets (Rensch, display excl. aerial / + HWI, Passeriformes) | Table S2 |
+| `output/figures/figS1_passeriformes.pdf` | main effects within Passeriformes | Figure S1 |
+| `output/tables/tableS3_care_interaction.tex` + `output/figures/figS2_care_interaction.pdf` | 3D × continuous parental-care interaction | Table S3, Figure S2 |
+
+Each `.tex` is a complete `table`/`figure` environment (caption and label
+included; tables need only `booktabs`) to paste or `\input{}` into the
+manuscript; each table also has a `.csv` twin with full-precision numbers, and
+each figure a `.png` preview.
+
+**Statistics.** Each model is fitted on each of 100 trees and pooled with
+Rubin's rules (within- + between-tree variance). Binary responses: penalised
+phylogenetic logistic regression (`phyloglm`, `logistic_MPLE`); continuous
+responses: PGLS with Pagel's λ (`phylolm`). Predictions are directional, so
+one-sided p-values are reported alongside two-sided ones, and figures show both
+90% (≈ one-sided 5%) and 95% CIs.
 
 ## Repository layout
 
@@ -34,15 +61,19 @@ project/
 ├── data-derived/
 │   └── analysis_data.csv # shared analysis-ready dataset (one row per species)
 ├── output/               # generated figures + tables (git-ignored)
+│   ├── figures/          #   Figures 1, S1, S2 (.pdf, .png, .tex)
+│   ├── tables/           #   Tables 1, S1, S2, S3 (.tex, .csv)
+│   └── model_results.rds #   cache of all fitted models
 ├── R/
-│   ├── 00_setup.R        # libraries, paths, helpers, constants
-│   ├── 01_load_raw.R     # load + clean the six raw sources        [authors]
+│   ├── 00_setup.R        # libraries, paths, model engine, helpers, constants
+│   ├── 01_load_raw.R     # load + clean the raw sources             [authors]
 │   ├── 02_build_dataset.R# assemble + write analysis_data.csv       [authors]
 │   ├── 03_load_dataset.R # read analysis_data.csv -> merged, avo_base
 │   ├── 04_trees.R        # master tree -> 100 sampled trees
-│   ├── 05_models.R       # all PGLS models
-│   ├── 06_figures.R      # Figure 1, Figure 2, Figure 3
-│   └── 07_tables.R       # Table 1, A1, A2, A3, A4
+│   ├── 05_models.R       # all models (main effects, controls, care interaction)
+│   ├── 06_figures.R      # Figures 1, S1, S2
+│   ├── 07_tables.R       # Tables 1, S1, S2, S3
+│   └── 99_exploratory.R  # analyses NOT in the paper (not run by run_all.R)
 ├── build_dataset.R       # entry point for authors (raw -> derived)
 ├── run_all.R             # entry point for anyone (derived -> results)
 └── README.md
@@ -82,6 +113,13 @@ sources. Key columns:
 | `spur_hi` | bony-spur presence (high confidence) |
 | `hwi` | hand-wing index |
 | `body_mass_mean`, `body_size_log` | mean body mass and its log (for the Rensch control) |
+| `marc_system` | Marcondes & Douvas category (`M`/`P`/`L`); `03_load_dataset.R` derives the monogamy-referenced contrasts `rdp`, `lek_m`, `lek_vs_rdp` |
+| `barber_ss`, `barber_srr` | Barber sexual-selection intensity (0–4) and sex-role reversal |
+| `barber_poly`, `barber_lek` | strong polygamy (2–3) / lek (4) vs monogamy (0–1), from `barber_ss` |
+| `dichro_sr`, `care_cont` | broad plumage dimorphism (all orders) and relative care investment of the sexes (> 0 = female-biased), sex-role ecology dataset |
+| `uv_cd` | UV-inclusive colour discriminability between the sexes |
+| `allopreen` | allopreening between pair members (0/1), Kenny et al. 2017 |
+| `care_mode`, `dev_pc1`, `dev_chickpc1`, `flightless`, `par_coop`, `age_indep` | used only in `R/99_exploratory.R` |
 
 In `03_load_dataset.R` the dataset is split into the two analysis backbones used
 throughout: `avo_base` (all species) and `merged` (the Lislevand subset,
@@ -103,6 +141,12 @@ extract the single file named below into `data/`.
 | `Mating_systems_master_datasheet_10nov2023.xlsx` (sheet `Species_data`) | remove any ` (n)` download suffix so the name matches | Marcondes & Douvas 2024, *Evolution* |
 | `species_spur_data.csv` | Dryad | Menezes & Palaoro 2022, *Ecol. Lett.* |
 | `S1_Data.xlsx` (sheet `Data1 (BirdTree)`) | sexual-selection intensity (0–4) + sex-role reversal | Barber et al. 2024, *PLoS Biology* |
+| `SexroleEcologyFinal.xlsx` (sheet `Data`) | continuous care (`Care`) + broad plumage dimorphism (`Dichro`) | sex-role ecology dataset (reference to complete) |
+| `MergedCDLatSet.xlsx` | UV-inclusive colour discriminability | Villar et al. 2025, *J. Zool.* |
+| `arx078_suppl_kenny_esm_tables1.xlsx` (sheet `Kenny_TableS1_ESM`) | allopreening, parental cooperation | Kenny et al. 2017, *Behav. Ecol.* |
+| `GeneralDataFrame.csv` | care mode (exploratory only) | "Who cares?" dataset, Dryad |
+| `evo14365-sup-0009-datasets2.xlsx` | developmental mode (exploratory only) | Cooney et al. 2021, *Evolution* |
+| `DataFileS2.xlsx` | volancy (exploratory only) | Sayol et al. 2020 |
 | `AllBirdsHackett1.tre` | 1000 Hackett "All species" trees (large; download from birdtree.org) | Jetz et al. 2012 |
 
 If a future release of any source changes its file name, either keep the old
@@ -135,9 +179,13 @@ renamed columns, adjust the `transmute()` blocks there. Expected fields:
 
 ## Scope
 
-This code reproduces exactly the analyses reported in the manuscript. Earlier
-exploratory branches that were not part of the paper have been removed for
-clarity (non-phylogenetic sanity checks, fuzzy-matching diagnostics, an
-extra-pair-paternity module, an aquatic-vs-terrestrial regression, spur
-demarcation regressions prevented by complete separation, and a superseded
-summary figure).
+`run_all.R` reproduces exactly the analyses reported in the manuscript: the
+main (bivariate) effects of 3D (main text), the same effects with controls or
+on subsets, and the 3D × continuous parental-care interaction (appendix).
+Exploratory analyses that are not in the paper are kept, but not run, in
+`R/99_exploratory.R`: resource-sharing interactions, the 3D × sexual-selection
+intensity interaction, binary care mode and developmental-mode interactions,
+flightlessness, and the hand-wing index as an alternative dimensionality proxy.
+Earlier branches (non-phylogenetic sanity checks, fuzzy-matching diagnostics,
+an extra-pair-paternity module, an aquatic-vs-terrestrial regression) were
+removed.

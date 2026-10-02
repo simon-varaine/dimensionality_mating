@@ -64,7 +64,13 @@ analysis_data <- read_csv(
   )
 ) %>%
   ## restore the focal contrast as a factor with 2D as the reference level
-  mutate(dim_bin = factor(dim_bin, levels = DIM_LEVELS))
+  mutate(dim_bin = factor(dim_bin, levels = DIM_LEVELS)) %>%
+  ## Marcondes monogamy-referenced contrasts (NA outside the two compared
+  ## categories), used by the models AND the descriptive table so both share
+  ## the same coding:  rdp = P vs M ; lek_m = L vs M ; lek_vs_rdp = L vs P.
+  mutate(rdp        = case_when(marc_system == "P" ~ 1L, marc_system == "M" ~ 0L),
+         lek_m      = case_when(marc_system == "L" ~ 1L, marc_system == "M" ~ 0L),
+         lek_vs_rdp = case_when(marc_system == "L" ~ 1L, marc_system == "P" ~ 0L))
 
 ## --- reconstruct the two backbones ------------------------------------------
 avo_base <- analysis_data                          # every species
